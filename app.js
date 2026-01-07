@@ -6,14 +6,13 @@ const mongoose = require("mongoose");
 const path = require("path");
 const methodOverride = require("method-override");
 const ejsMate = require("ejs-mate");
-const helmet = require("helmet"); // <-- NEW
+const helmet = require("helmet"); // Security
+const ExpressError = require("./utils/ExpressError");
 
-// Routes
 const listings = require("./routes/listings.js");
 const reviews = require("./routes/review.js");
 const users = require("./routes/user.js");
 
-// Auth
 const session = require("express-session");
 const flash = require("connect-flash");
 const passport = require("passport");
@@ -38,6 +37,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(methodOverride("_method"));
 app.use(express.static(path.join(__dirname, "public")));
 
+// Helmet + CSP
 app.use(
   helmet.contentSecurityPolicy({
     directives: {
@@ -49,24 +49,20 @@ app.use(
       fontSrc: ["'self'", "https://fonts.googleapis.com", "https://fonts.gstatic.com"],
     },
   })
-); // <-- NEW Helmet + CSP
+);
 
-// Session config ✅ enhanced security
+// Session config
 const sessionConfig = {
   secret: process.env.SESSION_SECRET || "mysupersecretcode",
   resave: false,
   saveUninitialized: false,
   cookie: {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production", // only HTTPS in production
-    sameSite: "lax", // CSRF protection
-    maxAge: 7 * 24 * 60 * 60 * 1000 // 1 week
-  }
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+  },
 };
-
-app.use(session(sessionConfig));
-
-
 app.use(session(sessionConfig));
 app.use(flash());
 
@@ -95,10 +91,15 @@ app.get("/", (req, res) => {
   res.redirect("/listings");
 });
 
-// ERROR HANDLER
+// 404 fallback route
+app.all("*", (req, res, next) => {
+  next(new ExpressError("Page Not Found", 404));
+});
+
+// Central Error Handler
 app.use((err, req, res, next) => {
-  console.log("🔥 ERROR CAUGHT FULL:", err);
-  res.status(500).send(typeof err === "object" ? JSON.stringify(err, null, 2) : err);
+  const { status = 500, message = "Something went wrong!" } = err;
+  res.status(status).render("error", { err });
 });
 
 // Server
