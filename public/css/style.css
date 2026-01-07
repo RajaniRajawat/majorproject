@@ -1,0 +1,83 @@
+
+body {
+    font-family: "Plus Jakarta Sans", sans-serif !important;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    background-color: #f8f9fa;
+}
+
+.container {
+    flex: 1;
+}
+
+/* NAVBAR */
+.navbar {
+    height: 5rem;
+    background-color: white;
+}
+
+/* FOOTER */
+.f-info {
+    text-align: center;
+    height: 8rem;
+    background-color: #ebebeb;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+}
+
+.f-info-links,
+.f-info-socials,
+.f-info-brand {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+/* LISTING CARDS */
+.card {
+    border: none !important;
+    margin-bottom: 2rem;
+}
+
+.listing-card {
+    height: 100%;
+}
+
+.card-img-top {
+    height: 18rem;
+    width: 100%;
+    object-fit: cover;
+    border-radius: 1rem 1rem 0 0;
+}
+
+/* SHOW PAGE */
+.show-card {
+    border-radius: 1rem;
+    overflow: hidden;
+}
+
+.show-img {
+    height: 22rem;
+    width: 100%;
+    object-fit: cover;
+}
+
+/* BUTTON SPACING */
+.card-body .btn {
+    margin-right: 0.5rem;
+}
+
+/* RESPONSIVE */
+@media (max-width: 768px) {
+    .card-img-top { height: 16rem; }
+    .show-img { height: 18rem; }
+}
+
+@media (max-width: 576px) {
+    .card-img-top { height: 12rem; }
+    .show-img { height: 14rem; }
+}
