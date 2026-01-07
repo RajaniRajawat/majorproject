@@ -51,16 +51,21 @@ app.use(
   })
 ); // <-- NEW Helmet + CSP
 
-// Session config
+// Session config ✅ enhanced security
 const sessionConfig = {
-  secret: "mysupersecretcode",
+  secret: process.env.SESSION_SECRET || "mysupersecretcode",
   resave: false,
   saveUninitialized: false,
   cookie: {
     httpOnly: true,
-    maxAge: 7 * 24 * 60 * 60 * 1000,
-  },
+    secure: process.env.NODE_ENV === "production", // only HTTPS in production
+    sameSite: "lax", // CSRF protection
+    maxAge: 7 * 24 * 60 * 60 * 1000 // 1 week
+  }
 };
+
+app.use(session(sessionConfig));
+
 
 app.use(session(sessionConfig));
 app.use(flash());
