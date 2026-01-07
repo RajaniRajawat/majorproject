@@ -1,12 +1,13 @@
 if (process.env.NODE_ENV !== "production") {
   require("dotenv").config();
 }
+
 const express = require("express");
 const mongoose = require("mongoose");
 const path = require("path");
 const methodOverride = require("method-override");
 const ejsMate = require("ejs-mate");
-const helmet = require("helmet"); // Security
+const helmet = require("helmet");
 const ExpressError = require("./utils/ExpressError");
 
 const listings = require("./routes/listings.js");
@@ -21,37 +22,76 @@ const User = require("./models/user.js");
 
 const app = express();
 
-// MongoDB connection
+/* -------------------- DATABASE -------------------- */
 mongoose
   .connect("mongodb://127.0.0.1:27017/wanderlust")
   .then(() => console.log("✅ Connected to MongoDB"))
   .catch((err) => console.log(err));
 
-// View engine
+/* -------------------- VIEW ENGINE -------------------- */
 app.engine("ejs", ejsMate);
 app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "views"));
 
-// Middleware
+/* -------------------- MIDDLEWARE -------------------- */
 app.use(express.urlencoded({ extended: true }));
 app.use(methodOverride("_method"));
 app.use(express.static(path.join(__dirname, "public")));
 
-// Helmet + CSP
+/* -------------------- HELMET (IMAGES + ICONS FIXED) -------------------- */
 app.use(
   helmet.contentSecurityPolicy({
     directives: {
-      defaultSrc: [],
-      connectSrc: ["'self'", "https://api.mapbox.com"],
-      scriptSrc: ["'self'", "https://api.mapbox.com", "https://cdn.jsdelivr.net"],
-      styleSrc: ["'self'", "'unsafe-inline'", "https://api.mapbox.com", "https://cdn.jsdelivr.net"],
-      imgSrc: ["'self'", "blob:", "data:", "https://res.cloudinary.com/"],
-      fontSrc: ["'self'", "https://fonts.googleapis.com", "https://fonts.gstatic.com"],
+      defaultSrc: ["'self'"],
+
+      connectSrc: [
+        "'self'",
+        "https://api.mapbox.com",
+        "https://events.mapbox.com",
+        "https://cdn.jsdelivr.net"
+      ],
+
+      scriptSrc: [
+        "'self'",
+        "'unsafe-inline'",
+        "https://cdn.jsdelivr.net",
+        "https://kit.fontawesome.com",
+        "https://api.mapbox.com"
+      ],
+
+      styleSrc: [
+        "'self'",
+        "'unsafe-inline'",
+        "https://cdn.jsdelivr.net",
+        "https://fonts.googleapis.com",
+        "https://cdnjs.cloudflare.com",
+        "https://api.mapbox.com"
+      ],
+
+      imgSrc: [
+        "'self'",
+        "data:",
+        "blob:",
+        "https://res.cloudinary.com",
+        "https://images.unsplash.com",
+        "https://plus.unsplash.com"
+      ],
+
+      fontSrc: [
+        "'self'",
+        "https://fonts.gstatic.com",
+        "https://cdnjs.cloudflare.com",
+        "https://ka-f.fontawesome.com"
+      ],
+
+      objectSrc: [],
     },
   })
 );
 
-// Session config
+
+
+/* -------------------- SESSION -------------------- */
 const sessionConfig = {
   secret: process.env.SESSION_SECRET || "mysupersecretcode",
   resave: false,
@@ -63,17 +103,18 @@ const sessionConfig = {
     maxAge: 7 * 24 * 60 * 60 * 1000,
   },
 };
+
 app.use(session(sessionConfig));
 app.use(flash());
 
-// Passport
+/* -------------------- PASSPORT -------------------- */
 app.use(passport.initialize());
 app.use(passport.session());
 passport.use(new LocalStrategy(User.authenticate()));
 passport.serializeUser(User.serializeUser());
 passport.deserializeUser(User.deserializeUser());
 
-// GLOBAL LOCALS
+/* -------------------- GLOBAL LOCALS -------------------- */
 app.use((req, res, next) => {
   res.locals.success = req.flash("success");
   res.locals.error = req.flash("error");
@@ -81,28 +122,27 @@ app.use((req, res, next) => {
   next();
 });
 
-// Routes
+/* -------------------- ROUTES -------------------- */
 app.use("/listings", listings);
 app.use("/listings/:id/reviews", reviews);
 app.use("/", users);
 
-// Home
 app.get("/", (req, res) => {
   res.redirect("/listings");
 });
 
-// 404 fallback route
-app.all("*", (req, res, next) => {
+/* -------------------- 404 -------------------- */
+app.use((req, res, next) => {
   next(new ExpressError("Page Not Found", 404));
 });
 
-// Central Error Handler
+/* -------------------- ERROR HANDLER -------------------- */
 app.use((err, req, res, next) => {
-  const { status = 500, message = "Something went wrong!" } = err;
+  const { status = 500 } = err;
   res.status(status).render("error", { err });
 });
 
-// Server
+/* -------------------- SERVER -------------------- */
 app.listen(8080, () => {
   console.log("🚀 Server running on port 8080");
 });
