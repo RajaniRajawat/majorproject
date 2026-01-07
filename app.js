@@ -1,11 +1,12 @@
-if(process.env.NODE_ENV !="production"){
-require('dotenv').config();
+if (process.env.NODE_ENV !== "production") {
+  require("dotenv").config();
 }
 const express = require("express");
 const mongoose = require("mongoose");
 const path = require("path");
 const methodOverride = require("method-override");
 const ejsMate = require("ejs-mate");
+const helmet = require("helmet"); // <-- NEW
 
 // Routes
 const listings = require("./routes/listings.js");
@@ -25,7 +26,7 @@ const app = express();
 mongoose
   .connect("mongodb://127.0.0.1:27017/wanderlust")
   .then(() => console.log("✅ Connected to MongoDB"))
-  .catch(err => console.log(err));
+  .catch((err) => console.log(err));
 
 // View engine
 app.engine("ejs", ejsMate);
@@ -37,15 +38,28 @@ app.use(express.urlencoded({ extended: true }));
 app.use(methodOverride("_method"));
 app.use(express.static(path.join(__dirname, "public")));
 
-// Session config  ✅ FIXED ORDER
+app.use(
+  helmet.contentSecurityPolicy({
+    directives: {
+      defaultSrc: [],
+      connectSrc: ["'self'", "https://api.mapbox.com"],
+      scriptSrc: ["'self'", "https://api.mapbox.com", "https://cdn.jsdelivr.net"],
+      styleSrc: ["'self'", "'unsafe-inline'", "https://api.mapbox.com", "https://cdn.jsdelivr.net"],
+      imgSrc: ["'self'", "blob:", "data:", "https://res.cloudinary.com/"],
+      fontSrc: ["'self'", "https://fonts.googleapis.com", "https://fonts.gstatic.com"],
+    },
+  })
+); // <-- NEW Helmet + CSP
+
+// Session config
 const sessionConfig = {
   secret: "mysupersecretcode",
   resave: false,
   saveUninitialized: false,
   cookie: {
     httpOnly: true,
-    maxAge: 7 * 24 * 60 * 60 * 1000
-  }
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+  },
 };
 
 app.use(session(sessionConfig));
@@ -58,11 +72,11 @@ passport.use(new LocalStrategy(User.authenticate()));
 passport.serializeUser(User.serializeUser());
 passport.deserializeUser(User.deserializeUser());
 
-// ⭐ GLOBAL LOCALS (VERY IMPORTANT)
+// GLOBAL LOCALS
 app.use((req, res, next) => {
   res.locals.success = req.flash("success");
   res.locals.error = req.flash("error");
-  res.locals.currentUser = req.user; // ⭐ THIS enables edit/delete
+  res.locals.currentUser = req.user;
   next();
 });
 
@@ -75,17 +89,12 @@ app.use("/", users);
 app.get("/", (req, res) => {
   res.redirect("/listings");
 });
-// ❗❗ ERROR HANDLER (debugging purpose)
+
+// ERROR HANDLER
 app.use((err, req, res, next) => {
   console.log("🔥 ERROR CAUGHT FULL:", err);
-
-  res.status(500).send(
-    typeof err === "object"
-      ? JSON.stringify(err, null, 2)
-      : err
-  );
+  res.status(500).send(typeof err === "object" ? JSON.stringify(err, null, 2) : err);
 });
-
 
 // Server
 app.listen(8080, () => {
